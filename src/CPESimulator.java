@@ -23,10 +23,7 @@ public class CPESimulator {
 	}
 	//source
 	public void srcAddHeader(String dName) {
-		DNS query = new DNS (0, 0, 1, 1, 0, dName, 
-				new ArrayList<String>(), 
-				new ArrayList<String>(), 
-				new ArrayList<String>());
+		DNS query = new DNS (0, 0, 1, 1, 0, dName, "", "" ,"");
 
 		UDP segment = new UDP(1001, 53, 42,  query);
 
@@ -51,8 +48,16 @@ public class CPESimulator {
 	//	System.out.println("in local DNS");
 	//	System.out.println(segment);
 		DNS query = segment.getQuery();
+		
+		checkLocalDNSDB(query);
+	}
+	
+	public void checkLocalDNSDB(DNS query) {
 		if (query.getQuestions().compareTo("google.com") == 0) {
-			
+			//query.getAnswers()
+			IPfound = true;
+		} else {
+			IPfound = false;
 		}
 	}
 

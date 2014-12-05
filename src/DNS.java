@@ -9,14 +9,14 @@ public class DNS {
 	private int numAdditionRR;
 	
 	private String Questions;
-	private ArrayList<String> answers;
-	private ArrayList<String> authority;
-	private ArrayList<String> additonal;
+	private String answers;
+	private String authority;
+	private String additonal;
 	
 	public DNS(int iD, int flags, int numQuestion, int numRR,
 			int numAdditionRR, String questions,
-			ArrayList<String> answers, ArrayList<String> authority,
-			ArrayList<String> additonal) {
+			String answers, String authority,
+			String additonal) {
 		
 		super();
 		
@@ -64,15 +64,15 @@ public class DNS {
 		return Questions;
 	}
 
-	public ArrayList<String> getAnswers() {
+	public String getAnswers() {
 		return answers;
 	}
 
-	public ArrayList<String> getAuthority() {
+	public String getAuthority() {
 		return authority;
 	}
 
-	public ArrayList<String> getAdditonal() {
+	public String getAdditonal() {
 		return additonal;
 	}
 	
@@ -101,14 +101,14 @@ public class DNS {
 	}
 
 	public void addAnswer(String ans) {
-		this.answers.add(ans);
+		this.answers = ans;
 	}
 
-	public void setAuthority(ArrayList<String> authority) {
+	public void setAuthority(String authority) {
 		this.authority = authority;
 	}
 
-	public void setAdditonal(ArrayList<String> additonal) {
+	public void setAdditonal(String additonal) {
 		this.additonal = additonal;
 	}
 	
