@@ -22,6 +22,10 @@ public class CPESimulator {
 		
 	}
 	//source
+	public void src(IP datagram) {
+		srcDelHeader(datagram);
+	}
+
 	public void srcAddHeader(String dName) {
 		DNS query = new DNS (0, 0, 1, 1, 0, dName, "", "" ,"");
 
@@ -33,8 +37,15 @@ public class CPESimulator {
 		localDNS(datagram);
 		
 	}
+	
 	public void srcDelHeader(IP datagram) {
-		
+		UDP segment = datagram.getSegment();
+		DNS query = segment.getQuery();
+		if (IPfound) {
+			System.out.println(query.getAnswers());
+		} else {
+			System.out.println("IP address not found");
+		}
 	}
 	
 	//Local DNS
@@ -44,14 +55,12 @@ public class CPESimulator {
 		if (IPfound) {
 			srcDelHeader(datagram);
 		} else {
-			rootDelHeader(datagram);
+			root(datagram);
 		}
 	}
 	
 	public void localDelHeader(IP datagram) {
 		UDP segment = datagram.getSegment();
-	//	System.out.println("in local DNS");
-	//	System.out.println(segment);
 		DNS query = segment.getQuery();
 		
 		checkLocalDNSDB(query);
@@ -59,10 +68,20 @@ public class CPESimulator {
 	
 	public void checkLocalDNSDB(DNS query) {
 		if (query.getQuestions().compareTo("google.com") == 0) {
-			//query.getAnswers()
+			query.getAnswers().concat("10.20.30.40");
 			IPfound = true;
 		} else {
 			IPfound = false;
+		}
+	}
+	
+	public void root(IP datagram) {
+		rootDelHeader(datagram);
+		
+		if (IPfound){
+			localDNS(datagram);
+		}else {
+			
 		}
 	}
 
@@ -73,15 +92,15 @@ public class CPESimulator {
 		int length = query.getQuestions().length();
 		String topLevel = query.getQuestions().substring(length - 3);
 		
-		if (topLevel.equals("com")) {
-			comTLDDelHeader(datagram);
-		} else if (topLevel.equals("edu")) {
-			eduTLDDelHeader(datagram);
-		} else if (topLevel.equals("org")) {
-			orgTLDDelHeader(datagram);
+		if (!IPfound) {
+			if (topLevel.equals("com")) {
+				comTLDDelHeader(datagram);
+			} else if (topLevel.equals("edu")) {
+				eduTLDDelHeader(datagram);
+			} else if (topLevel.equals("org")) {
+				orgTLDDelHeader(datagram);
+			}
 		}
-		
-		
 	}
 	
 	public void orgTLDDelHeader(IP datagram) {

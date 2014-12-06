@@ -39,7 +39,6 @@ public class DNS {
 		return flags;
 	}
 
-	@Override
 	public String toString() {
 		return "DNS [ID=" + ID + ", flags=" + flags + ", numQuestion="
 				+ numQuestion + ", numRR=" + numRR + ", numAdditionRR="
