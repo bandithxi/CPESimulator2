@@ -68,7 +68,6 @@ public class CPESimulator {
 	
 	public void checkLocalDNSDB(DNS query) {
 		if (query.getQuestions().compareTo("google.com") == 0) {
-			query.getAnswers().concat("10.20.30.40");
 			IPfound = true;
 		} else {
 			IPfound = false;
