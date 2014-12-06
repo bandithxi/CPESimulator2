@@ -33,7 +33,7 @@ public class CPESimulator {
 		localDNS(datagram);
 		
 	}
-	public void srcDelHeader() {
+	public void srcDelHeader(IP datagram) {
 		
 	}
 	
@@ -41,6 +41,11 @@ public class CPESimulator {
 	public void localDNS(IP datagram) {
 		localDelHeader(datagram);
 		
+		if (IPfound) {
+			srcDelHeader(datagram);
+		} else {
+			rootDelHeader(datagram);
+		}
 	}
 	
 	public void localDelHeader(IP datagram) {
@@ -61,4 +66,33 @@ public class CPESimulator {
 		}
 	}
 
+	public void rootDelHeader(IP datagram) {
+		UDP segment = datagram.getSegment();
+		DNS query = segment.getQuery();
+		
+		int length = query.getQuestions().length();
+		String topLevel = query.getQuestions().substring(length - 3);
+		
+		if (topLevel.equals("com")) {
+			comTLDDelHeader(datagram);
+		} else if (topLevel.equals("edu")) {
+			eduTLDDelHeader(datagram);
+		} else if (topLevel.equals("org")) {
+			orgTLDDelHeader(datagram);
+		}
+		
+		
+	}
+	
+	public void orgTLDDelHeader(IP datagram) {
+		
+	}
+	
+	public void eduTLDDelHeader(IP datagram) {
+		
+	}
+	
+	public void comTLDDelHeader(IP datagram) {
+		
+	}
 }
