@@ -23,22 +23,24 @@ public class CPESimulator {
 	}
 	//source
 	public void src(IP datagram) {
+		System.out.println("in src");
 		srcDelHeader(datagram);
 	}
 
 	public void srcAddHeader(String dName) {
+		System.out.println("in srcAddHeader");
 		DNS query = new DNS (0, 0, 1, 1, 0, dName, "", "" ,"");
 
 		UDP segment = new UDP(1001, 53, 42,  query);
 
 		IP datagram = new IP(4, 20, 42, 0, 007, 0, 128, 17, srcIP, localDNSIP, 0, segment);
-		System.out.println( datagram.toString());
+	//	System.out.println( datagram.toString());
 		
 		localDNS(datagram);
-		
 	}
 	
 	public void srcDelHeader(IP datagram) {
+		System.out.println("in srcDelHeader");
 		UDP segment = datagram.getSegment();
 		DNS query = segment.getQuery();
 		if (IPfound) {
@@ -50,6 +52,7 @@ public class CPESimulator {
 	
 	//Local DNS
 	public void localDNS(IP datagram) {
+		System.out.println("in locaDNS");
 		localDelHeader(datagram);
 		
 		if (IPfound) {
@@ -60,14 +63,19 @@ public class CPESimulator {
 	}
 	
 	public void localDelHeader(IP datagram) {
+		System.out.println("in localDelHeader");
 		UDP segment = datagram.getSegment();
 		DNS query = segment.getQuery();
 		
-		checkLocalDNSDB(query);
+		if (!IPfound) {
+			checkLocalDNSDB(query);
+		}
 	}
 	
 	public void checkLocalDNSDB(DNS query) {
+		System.out.println("in checkLocalDNSDB");
 		if (query.getQuestions().compareTo("google.com") == 0) {
+			query.addAnswer("10.20.30.40");
 			IPfound = true;
 		} else {
 			IPfound = false;
@@ -75,6 +83,7 @@ public class CPESimulator {
 	}
 	
 	public void root(IP datagram) {
+		System.out.println("in root");
 		rootDelHeader(datagram);
 		
 		if (IPfound){
@@ -85,6 +94,7 @@ public class CPESimulator {
 	}
 
 	public void rootDelHeader(IP datagram) {
+		System.out.println("in rootDelHeader");
 		UDP segment = datagram.getSegment();
 		DNS query = segment.getQuery();
 		
@@ -93,24 +103,62 @@ public class CPESimulator {
 		
 		if (!IPfound) {
 			if (topLevel.equals("com")) {
-				comTLDDelHeader(datagram);
+				comTLD(datagram);
 			} else if (topLevel.equals("edu")) {
-				eduTLDDelHeader(datagram);
+				eduTLD(datagram);
 			} else if (topLevel.equals("org")) {
-				orgTLDDelHeader(datagram);
+				orgTLD(datagram);
 			}
 		}
 	}
 	
+	public void orgTLD(IP datagram) {
+		System.out.println("in orgTLD");
+		orgTLDDelHeader(datagram);
+		if (IPfound) {
+			root(datagram);
+		} else {
+			System.out.println("not found in org db");
+		}
+	}
 	public void orgTLDDelHeader(IP datagram) {
+		System.out.println("in orgTLDDelHeader");
+		UDP segment = datagram.getSegment();
+		DNS query = segment.getQuery();
 		
+		checkorgTLDDB(query);
+	}
+	public void checkorgTLDDB(DNS query) {
+		if (query.getQuestions().compareTo("google.org") == 0) {
+			query.addAnswer("20.20.30.40");
+			IPfound = true;
+		} else {
+			IPfound = false;
+		}
 	}
 	
+	public void eduTLD(IP datagram) {
+		System.out.println("in eduTLD");
+		eduTLDDelHeader(datagram);
+		if (IPfound) {
+			root(datagram);
+		} else {
+			System.out.println("not found in edu db");
+		}
+	}
 	public void eduTLDDelHeader(IP datagram) {
-		
+		System.out.println("in eduTLDDelHeader");
 	}
-	
+	public void comTLD(IP datagram) {
+		System.out.println("in comTLD");
+		comTLDDelHeader(datagram);
+		if (IPfound) {
+			root(datagram);
+		} else {
+			System.out.println("not found in com db");
+		}
+	}
 	public void comTLDDelHeader(IP datagram) {
-		
+		System.out.println("in comTLDDelHeader");
 	}
 }
