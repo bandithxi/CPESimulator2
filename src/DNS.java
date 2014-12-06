@@ -11,12 +11,12 @@ public class DNS {
 	private String Questions;
 	private String answers;
 	private String authority;
-	private String additonal;
+	private String additional;
 	
-	public DNS(int iD, int flags, int numQuestion, int numRR,
+	public DNS(int iD, int flags, int numQuestion, int numAnswers, int numRR,
 			int numAdditionRR, String questions,
 			String answers, String authority,
-			String additonal) {
+			String additional) {
 		
 		super();
 		
@@ -28,7 +28,7 @@ public class DNS {
 		this.Questions = questions;
 		this.answers = answers;
 		this.authority = authority;
-		this.additonal = additonal;
+		this.additional = additional;
 	}
 
 	public int getID() {
@@ -43,8 +43,8 @@ public class DNS {
 		return "DNS [ID=" + ID + ", flags=" + flags + ", numQuestion="
 				+ numQuestion + ", numRR=" + numRR + ", numAdditionRR="
 				+ numAdditionRR + ", Questions=" + Questions + ", answers="
-				+ answers + ", authority=" + authority + ", additonal="
-				+ additonal + "]";
+				+ answers + ", authority=" + authority + ", additional="
+				+ additional + "]";
 	}
 
 	public int getNumQuestion() {
@@ -72,7 +72,7 @@ public class DNS {
 	}
 
 	public String getAdditonal() {
-		return additonal;
+		return additional;
 	}
 	
 	public void setID(int iD) {
@@ -107,8 +107,8 @@ public class DNS {
 		this.authority = authority;
 	}
 
-	public void setAdditonal(String additonal) {
-		this.additonal = additonal;
+	public void setAdditonal(String additional) {
+		this.additional = additional;
 	}
 	
 }

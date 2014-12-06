@@ -10,6 +10,7 @@ public class IP {
 	private int protocol;
 	private String srcIP;
 	private String destIP;
+	private String options;
 	private UDP segment;
 
 	//Not used for this simulation
@@ -18,7 +19,7 @@ public class IP {
 	
 	public IP(int version, int headerLen, int totalLength, int packetType,
 			int iD, int fragOffset, int tTL, int protocol, String srcIP,
-			String destIP, int flags, UDP segment) {
+			String destIP, String options, UDP segment) {
 		super();
 		this.version = version;
 		this.headerLen = headerLen;

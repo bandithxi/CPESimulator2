@@ -5,8 +5,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Scanner;
 
-
 public class CPESimulator {
+	
 	final static String srcIP = "172.168.10.1";
 	final static String localDNSIP = "121.30.40.10";
 	final static String rootIP = "10.11.1.13";
@@ -16,6 +16,7 @@ public class CPESimulator {
 	
 	boolean IPfound = false;
 	boolean searchComplete = false;
+	int n=0;
 	
 	public static void main(String[] args) {
 		System.out.println("Enter the domain name");
@@ -24,38 +25,105 @@ public class CPESimulator {
 		CPESimulator prog = new CPESimulator();
 		prog.srcAddHeader(stream.next());
 	}
-	//source
+	
+	//---------------------------------------------------------------
+	//At SOURCE
+	//Building DNS query and adding UDP and IP headers at source.
+	//After adding sending IP datagram to local DNS.
+	//---------------------------------------------------------------
 	public void srcAddHeader(String dName) {
-		System.out.println("in srcAddHeader");
-		DNS query = new DNS (0, 0, 1, 1, 0, dName, "", "" ,"");
-
-		UDP segment = new UDP(1001, 53, 42,  query);
-
-		IP datagram = new IP(4, 20, 42, 0, 007, 0, 128, 17, srcIP, localDNSIP, 0, segment);
+		int src_ID=0;
+		int src_flags=0;
+		int src_numQuestion=0;
+		int src_numAnswers=0;
+		int src_numRR=0;
+		int src_numAdditionRR=0;
+		String src_Questions=dName;
+		String src_answers="";
+		String src_authority="";
+		String src_additional="";
 		
+		int srcPort=1001;
+		int destPort=53;
+		int length=40;
+
+		int version=4;
+		int headerLen=20;
+		int packetType=0;
+		int totalLength=60;
+		int ID=1234;
+		int fragOffset=0;
+		int TTL=50;
+		int protocol=17;
+		String options="";
+		
+		src_numQuestion++;
+		//Building DNS Query at Application layer
+		DNS query = new DNS (src_ID, src_flags, src_numQuestion, src_numAnswers, 
+							src_numRR, src_numAdditionRR, src_Questions, 
+							src_answers, src_authority, src_additional);
+		//Building UDP Segment at Transport layer
+		UDP segment = new UDP(srcPort, destPort, length,  query);
+		//Building IP Datagram at Network layer
+		IP datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+				fragOffset, TTL, protocol, srcIP, localDNSIP, options, segment);
+		//Sending IP datagram to Local DNS
 		localDNS(datagram);
 	}
 	
+	//--------------------------------------------------------------
+	//Deleting IP and UDP headers.
+	//Analyze DNS Query
+	//Display output which is in DNS Answers field.
+	//--------------------------------------------------------------
 	public void srcDelHeader(IP datagram) {
-		System.out.println("in srcDelHeader");
-		UDP segment = datagram.getSegment();
+		//Received IP datagram in Network layer.
+		IP datagram1 = datagram;
+		//Getting UDP segment from IP datagram at Transport layer.
+		UDP segment = datagram1.getSegment();
+		//Getting DNS query from UDP segment.
 		DNS query = segment.getQuery();
-		
-		System.out.println(query.getAnswers());
+		//Displaying Results in Output.
+		System.out.println("");
+		System.out.println("Result");
+		System.out.println("------");
+		System.out.println("Number of Questions : " + query.getNumQuestion());
+		System.out.println("Number of Answers : " + query.getNumRR());
+		System.out.println("IP address : " + query.getAnswers());
 	}
 	
-	//Local DNS
+	//------------------------------------------------------------------------
+	//At Local DNS
+	//Deleting IP and UDP headers from IP datagram received
+	//Analyze Questions field in DNS query.
+	//If domain name found in Local DNS database, add IP and UDP headers and 
+	//   send IP datagram to Source. Else send IP datagram to Root
+	//------------------------------------------------------------------------
 	public void localDNS(IP datagram) {
-		System.out.println("in locaDNS");
+		int srcPort=53;
+		int destPort=53;
+		int length=40;
 		
-		System.out.println("in localDelHeader");
-		UDP segment = datagram.getSegment();
+		int version=4;
+		int headerLen=20;
+		int packetType=0;
+		int totalLength=60;
+		int ID=1234;
+		int fragOffset=0;
+		int TTL=50;
+		int protocol=17;
+		String options="";
+		
+		//Received IP datagram in Network layer.
+		IP datagram1 = datagram;
+		//Getting UDP segment from IP datagram at Transport layer.
+		UDP segment = datagram1.getSegment();
+		//Getting DNS query from UDP segment.
 		DNS query = segment.getQuery();
+		
 		String Question = query.getQuestions();
 		
-		System.out.println("in checkLocalDNSDB");
-	//testing with db
-		if (!IPfound){
+		if (!IPfound && !searchComplete){
 			Connection conn = null;
 			Statement stmt = null;
 			ResultSet rs = null;
@@ -73,6 +141,8 @@ public class CPESimulator {
 					String type = rs.getString("type");
 					if (name.compareTo(Question)==0) {
 						query.addAnswer(value);
+						n++;
+						query.setNumRR(n);
 						IPfound = true;
 						break;
 					} else {
@@ -88,67 +158,105 @@ public class CPESimulator {
 			}
 		}
 		
-		System.out.println("in localAddHeader");
-		segment = new UDP(53, 53, 42,  query);
+		segment = new UDP(srcPort, destPort, length, query);
 		if (IPfound || searchComplete) {
-			datagram = new IP(4, 20, 42, 0, 007, 0, 128, 17, localDNSIP, srcIP, 0, segment);
+			datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+					fragOffset, TTL, protocol, localDNSIP, srcIP, options, segment);
 			srcDelHeader(datagram);
 		}else {
-			datagram = new IP(4, 20, 42, 0, 007, 0, 128, 17, localDNSIP, rootIP, 0, segment);
+			datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+					fragOffset, TTL, protocol, localDNSIP, rootIP, options, segment);
 			root(datagram);
 		}
 	}
 	
 	public void root(IP datagram) {
-		System.out.println("in root");
+		int srcPort=53;
+		int destPort=53;
+		int length=40;
 		
-		System.out.println("in rootDelHeader");
-		UDP segment = datagram.getSegment();
+		int version=4;
+		int headerLen=20;
+		int packetType=0;
+		int totalLength=60;
+		int ID=1234;
+		int fragOffset=0;
+		int TTL=50;
+		int protocol=17;
+		String options="";
+		
+		//Received IP datagram in Network layer.
+		IP datagram1 = datagram;
+		//Getting UDP segment from IP datagram at Transport layer.
+		UDP segment = datagram1.getSegment();
+		//Getting DNS query from UDP segment.
 		DNS query = segment.getQuery();
 		
-		int length = query.getQuestions().length();
-		String topLevel = query.getQuestions().substring(length - 3);
+		int len = query.getQuestions().length();
+		String topLevel = query.getQuestions().substring(len - 3);
 		
-		System.out.println("in rootAddHeader");
 		if (IPfound || searchComplete) {
-			segment = new UDP(1001, 53, 42,  query);
-			datagram = new IP(4, 20, 42, 0, 007, 0, 128, 17, rootIP , localDNSIP, 0, segment);
+			segment = new UDP(srcPort, destPort, length,  query);
+			datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+					fragOffset, TTL, protocol, rootIP, localDNSIP, options, segment);
 			localDNS(datagram);
 		} else {
 			if (topLevel.equals("com")) {
-				segment = new UDP(53, 53, 42, query);
-				datagram = new IP(4, 20, 42, 0, 007, 0, 128, 17, rootIP , comTLDIP, 0, segment);
+				segment = new UDP(srcPort, destPort, length,  query);
+				datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+						fragOffset, TTL, protocol, rootIP, comTLDIP, options, segment);
+
 				comTLD(datagram);
 			} else if (topLevel.equals("edu")) {
-				segment = new UDP(53, 53, 42, query);
-				datagram = new IP(4, 20, 42, 0, 007, 0, 128, 17, rootIP , eduTLDIP, 0, segment);
+				segment = new UDP(srcPort, destPort, length,  query);
+				datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+						fragOffset, TTL, protocol, rootIP, eduTLDIP, options, segment);
+
 				eduTLD(datagram);
 			} else if (topLevel.equals("org")) {
-				segment = new UDP(53, 53, 42, query);
-				datagram = new IP(4, 20, 42, 0, 007, 0, 128, 17, rootIP , orgTLDIP, 0, segment);
+				segment = new UDP(srcPort, destPort, length,  query);
+				datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+						fragOffset, TTL, protocol, rootIP, orgTLDIP, options, segment);
 				orgTLD(datagram);
-			} else
-				query.addAnswer("IP address not found");
-				segment = new UDP(53, 53, 42, query);
+			} else {
+				query.addAnswer("Not found");
+				segment = new UDP(srcPort, destPort, length,  query);
+				datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+						fragOffset, TTL, protocol, rootIP, localDNSIP, options, segment);
 				searchComplete = true;
-				localDNS(datagram);			
+				localDNS(datagram);
+			}
 		}
 	}
 
 	public void orgTLD(IP datagram) {
-		System.out.println("in orgTLD");
-
-		System.out.println("in orgTLDDelHeader");
-		UDP segment = datagram.getSegment();
+		int srcPort=53;
+		int destPort=53;
+		int length=40;
+		
+		int version=4;
+		int headerLen=20;
+		int packetType=0;
+		int totalLength=60;
+		int ID=1234;
+		int fragOffset=0;
+		int TTL=50;
+		int protocol=17;
+		String options="";
+		
+		//Received IP datagram in Network layer.
+		IP datagram1 = datagram;
+		//Getting UDP segment from IP datagram at Transport layer.
+		UDP segment = datagram1.getSegment();
+		//Getting DNS query from UDP segment.
 		DNS query = segment.getQuery();
 		String Question = query.getQuestions();
-	//testing with db
+
 		if (!IPfound){
 			Connection conn = null;
 			Statement stmt = null;
 			ResultSet rs = null;
 			try {
-				System.out.println("in try block");
 				Class.forName("com.mysql.jdbc.Driver").newInstance();
 				String connectionUrl = "jdbc:mysql://localhost:3306/cpe600_dns";
 				String connectionUser = "root";
@@ -162,11 +270,13 @@ public class CPESimulator {
 					String type = rs.getString("type");
 					if (name.compareTo(Question)==0) {
 						query.addAnswer(value);
+						n++;
+						query.setNumRR(n);
 						IPfound = true;
 						searchComplete = true;
 						break;
 					} else {
-						query.addAnswer("IP address not found on .org TLD");
+						query.addAnswer("Not found in .org TLD");
 						IPfound = false;
 						searchComplete = true;
 					}
@@ -180,33 +290,46 @@ public class CPESimulator {
 			}
 		}
 
-		System.out.println("in orgTLDAddHeader");
-		segment = new UDP(53, 53, 42,  query);
+		segment = new UDP(srcPort, destPort, length, query);
 		if (IPfound) {
-			datagram = new IP(4, 20, 42, 0, 007, 0, 128, 17, orgTLDIP, rootIP, 0, segment);
+			datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+					fragOffset, TTL, protocol, orgTLDIP, rootIP, options, segment);
 			root(datagram);
 		} else {
-			datagram = new IP(4, 20, 42, 0, 007, 0, 128, 17, orgTLDIP, rootIP, 0, segment);
+			datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+					fragOffset, TTL, protocol, orgTLDIP, rootIP, options, segment);
 			root(datagram);
 		}
 	}
 
 	public void eduTLD(IP datagram) {
-		System.out.println("in eduTLD");
-
-		System.out.println("in eduTLDDelHeader");
-		UDP segment = datagram.getSegment();
+		int srcPort=53;
+		int destPort=53;
+		int length=40;
+		
+		int version=4;
+		int headerLen=20;
+		int packetType=0;
+		int totalLength=60;
+		int ID=1234;
+		int fragOffset=0;
+		int TTL=50;
+		int protocol=17;
+		String options="";
+		
+		//Received IP datagram in Network layer.
+		IP datagram1 = datagram;
+		//Getting UDP segment from IP datagram at Transport layer.
+		UDP segment = datagram1.getSegment();
+		//Getting DNS query from UDP segment.
 		DNS query = segment.getQuery();
 		String Question = query.getQuestions();
-		
-		System.out.println("in checkeduTLDDB");
-	//testing with db
+
 		if (!IPfound){
 			Connection conn = null;
 			Statement stmt = null;
 			ResultSet rs = null;
 			try {
-				System.out.println("in try block");
 				Class.forName("com.mysql.jdbc.Driver").newInstance();
 				String connectionUrl = "jdbc:mysql://localhost:3306/cpe600_dns";
 				String connectionUser = "root";
@@ -220,11 +343,13 @@ public class CPESimulator {
 					String type = rs.getString("type");
 					if (name.compareTo(Question)==0) {
 						query.addAnswer(value);
+						n++;
+						query.setNumRR(n);
 						IPfound = true;
 						searchComplete = true;
 						break;
 					} else {
-						query.addAnswer("IP address not found on .edu TLD");
+						query.addAnswer("Not found in .edu TLD");
 						IPfound = false;
 						searchComplete = true;
 					}
@@ -238,32 +363,45 @@ public class CPESimulator {
 			}
 		}
 
-		System.out.println("in eduTLDAddHeader");
-		segment = new UDP(53, 53, 42,  query);
+		segment = new UDP(srcPort, destPort, length, query);
 		if (IPfound) {
-			datagram = new IP(4, 20, 42, 0, 007, 0, 128, 17, eduTLDIP, rootIP, 0, segment);
+			datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+					fragOffset, TTL, protocol, eduTLDIP, rootIP, options, segment);
 			root(datagram);
 		} else {
-			datagram = new IP(4, 20, 42, 0, 007, 0, 128, 17, eduTLDIP, rootIP, 0, segment);
+			datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+					fragOffset, TTL, protocol, eduTLDIP, rootIP, options, segment);
 			root(datagram);
 		}
 	}
 	
 	public void comTLD(IP datagram) {
-		System.out.println("in comTLD");
+		int srcPort=53;
+		int destPort=53;
+		int length=40;
 		
-		System.out.println("in comTLDDelHeader");
-		UDP segment = datagram.getSegment();
+		int version=4;
+		int headerLen=20;
+		int packetType=0;
+		int totalLength=60;
+		int ID=1234;
+		int fragOffset=0;
+		int TTL=50;
+		int protocol=17;
+		String options="";
+
+		//Received IP datagram in Network layer.
+		IP datagram1 = datagram;
+		//Getting UDP segment from IP datagram at Transport layer.
+		UDP segment = datagram1.getSegment();
+		//Getting DNS query from UDP segment.
 		DNS query = segment.getQuery();
 		String Question = query.getQuestions();
-		
-		System.out.println("in checkcomTLDDB");
-	//testing with db
+				
 		Connection conn = null;
 		Statement stmt = null;
 		ResultSet rs = null;
 		try {
-			System.out.println("in try block");
 			Class.forName("com.mysql.jdbc.Driver").newInstance();
 			String connectionUrl = "jdbc:mysql://localhost:3306/cpe600_dns";
 			String connectionUser = "root";
@@ -277,11 +415,13 @@ public class CPESimulator {
 				String type = rs.getString("type");
 				if (name.compareTo(Question)==0) {
 					query.addAnswer(value);
+					n++;
+					query.setNumRR(n);
 					IPfound = true;
 					searchComplete = true;
 					break;
 				} else {
-					query.addAnswer("IP address not found on .com TLD");
+					query.addAnswer("Not found in .com TLD");
 					IPfound = false;
 					searchComplete = true;
 				}
@@ -294,13 +434,14 @@ public class CPESimulator {
 			try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
 		}
 
-		System.out.println("in comTLDAddHeader");
-		segment = new UDP(53, 53, 42,  query);
+		segment = new UDP(srcPort, destPort, length, query);
 		if (IPfound) {
-			datagram = new IP(4, 20, 42, 0, 007, 0, 128, 17, comTLDIP, rootIP, 0, segment);
+			datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+					fragOffset, TTL, protocol, comTLDIP, rootIP, options, segment);
 			root(datagram);
 		} else {
-			datagram = new IP(4, 20, 42, 0, 007, 0, 128, 17, comTLDIP, rootIP, 0, segment);
+			datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+					fragOffset, TTL, protocol, comTLDIP, rootIP, options, segment);
 			root(datagram);
 		}
 	}
