@@ -6,7 +6,7 @@ public class DNS {
 	private int numQuestion;
 	private int numAnswers;
 	private int numRR;
-	private int numAdditionRR;
+	private int numAuthNS;
 	
 	private String Questions;
 	private String answers;
@@ -14,7 +14,7 @@ public class DNS {
 	private String additional;
 	
 	public DNS(int iD, int flags, int numQuestion, int numAnswers, int numRR,
-			int numAdditionRR, String questions,
+			int numAuthNS, String questions,
 			String answers, String authority,
 			String additional) {
 		
@@ -24,7 +24,7 @@ public class DNS {
 		this.flags = flags;
 		this.numQuestion = numQuestion;
 		this.numRR = numRR;
-		this.numAdditionRR = numAdditionRR;
+		this.numAuthNS = numAuthNS;
 		this.Questions = questions;
 		this.answers = answers;
 		this.authority = authority;
@@ -41,8 +41,8 @@ public class DNS {
 
 	public String toString() {
 		return "DNS [ID=" + ID + ", flags=" + flags + ", numQuestion="
-				+ numQuestion + ", numRR=" + numRR + ", numAdditionRR="
-				+ numAdditionRR + ", Questions=" + Questions + ", answers="
+				+ numQuestion + ", numRR=" + numRR + ", numAuthNS="
+				+ numAuthNS + ", Questions=" + Questions + ", answers="
 				+ answers + ", authority=" + authority + ", additional="
 				+ additional + "]";
 	}
@@ -55,8 +55,8 @@ public class DNS {
 		return numRR;
 	}
 
-	public int getNumAdditionRR() {
-		return numAdditionRR;
+	public int getNumAuthNS() {
+		return numAuthNS;
 	}
 
 	public String getQuestions() {
@@ -91,8 +91,8 @@ public class DNS {
 		this.numRR = numRR;
 	}
 
-	public void setNumAdditionRR(int numAdditionRR) {
-		this.numAdditionRR = numAdditionRR;
+	public void setNumAuthNS(int numAuthNS) {
+		this.numAuthNS = numAuthNS;
 	}
 
 	public void setQuestions(String questions) {

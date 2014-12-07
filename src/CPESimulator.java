@@ -13,10 +13,11 @@ public class CPESimulator {
 	final static String comTLDIP = "25.13.10.1";
 	final static String eduTLDIP = "65.32.34.12";
 	final static String orgTLDIP = "72.13.21.93";
+	final static String authDNSIP = "129.35.172.0";
 	
 	boolean IPfound = false;
 	boolean searchComplete = false;
-	int n=0;
+	int n=0,m=0;
 	
 	public static void main(String[] args) {
 		System.out.println("Enter the domain name");
@@ -89,7 +90,11 @@ public class CPESimulator {
 		System.out.println("------");
 		System.out.println("Number of Questions : " + query.getNumQuestion());
 		System.out.println("Number of Answers : " + query.getNumRR());
+		System.out.println("Number of Authoritative answers : " + query.getNumAuthNS());
 		System.out.println("IP address : " + query.getAnswers());
+		if (query.getNumAuthNS()!=0){
+			System.out.println("IP of Authoritative DNS Server : " + query.getAuthority());
+		}
 	}
 	
 	//------------------------------------------------------------------------
@@ -243,6 +248,9 @@ public class CPESimulator {
 		int TTL=50;
 		int protocol=17;
 		String options="";
+		String name="";
+		String value="";
+		String type="";
 		
 		//Received IP datagram in Network layer.
 		IP datagram1 = datagram;
@@ -265,9 +273,9 @@ public class CPESimulator {
 				stmt = conn.createStatement();
 				rs = stmt.executeQuery("SELECT * FROM orgtld_table"); 
 				while (rs.next()) {
-					String name = rs.getString("name");
-					String value = rs.getString("value");
-					String type = rs.getString("type");
+					name = rs.getString("name");
+					value = rs.getString("value");
+					type = rs.getString("type");
 					if (name.compareTo(Question)==0) {
 						query.addAnswer(value);
 						n++;
@@ -389,6 +397,10 @@ public class CPESimulator {
 		int TTL=50;
 		int protocol=17;
 		String options="";
+		
+		String name="";
+		String value="";
+		String type="";
 
 		//Received IP datagram in Network layer.
 		IP datagram1 = datagram;
@@ -410,11 +422,21 @@ public class CPESimulator {
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery("SELECT * FROM comtld_table"); 
 			while (rs.next()) {
-				String name = rs.getString("name");
-				String value = rs.getString("value");
-				String type = rs.getString("type");
-				if (name.compareTo(Question)==0) {
-					query.addAnswer(value);
+				String newName;
+				name = rs.getString("name");
+				value = rs.getString("value");
+				type = rs.getString("type");
+				if (type.compareTo("NS")== 0) {
+					newName = name.substring(4);
+				} else {
+					newName = name;
+				}
+				if (newName.compareTo(Question)==0) {
+					if(type.compareTo("NS")==0){
+						query.setAuthority(value);
+					} else {
+						query.addAnswer(value);
+					}
 					n++;
 					query.setNumRR(n);
 					IPfound = true;
@@ -436,12 +458,92 @@ public class CPESimulator {
 
 		segment = new UDP(srcPort, destPort, length, query);
 		if (IPfound) {
-			datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+			if (type.compareTo("A")==0) {
+				datagram = new IP(version, headerLen, packetType, totalLength, ID, 
 					fragOffset, TTL, protocol, comTLDIP, rootIP, options, segment);
-			root(datagram);
+				root(datagram);
+			} else if (type.compareTo("NS") == 0) {
+				datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+						fragOffset, TTL, protocol, comTLDIP, authDNSIP, options, segment);
+					authDNS(datagram);
+			} else if (type.compareTo("CNAME") == 0) {
+				datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+						fragOffset, TTL, protocol, comTLDIP, rootIP, options, segment);
+					root(datagram);
+			}
 		} else {
 			datagram = new IP(version, headerLen, packetType, totalLength, ID, 
 					fragOffset, TTL, protocol, comTLDIP, rootIP, options, segment);
+			root(datagram);
+		}
+	}
+	public void authDNS(IP datagram) {
+		int srcPort=53;
+		int destPort=53;
+		int length=40;
+		
+		int version=4;
+		int headerLen=20;
+		int packetType=0;
+		int totalLength=60;
+		int ID=1234;
+		int fragOffset=0;
+		int TTL=50;
+		int protocol=17;
+		String options="";
+
+		//Received IP datagram in Network layer.
+		IP datagram1 = datagram;
+		//Getting UDP segment from IP datagram at Transport layer.
+		UDP segment = datagram1.getSegment();
+		//Getting DNS query from UDP segment.
+		DNS query = segment.getQuery();
+		String Question = query.getQuestions();
+				
+		Connection conn = null;
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			Class.forName("com.mysql.jdbc.Driver").newInstance();
+			String connectionUrl = "jdbc:mysql://localhost:3306/cpe600_dns";
+			String connectionUser = "root";
+			String connectionPassword = "ashok";
+			conn = DriverManager.getConnection(connectionUrl, connectionUser, connectionPassword);
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery("SELECT * FROM authdns_table"); 
+			while (rs.next()) {
+				String name = rs.getString("name");
+				String value = rs.getString("value");
+				String type = rs.getString("type");
+				if (name.compareTo(Question)==0) {
+					query.addAnswer(value);
+					m++;
+					query.setNumAuthNS(m);
+					IPfound = true;
+					searchComplete = true;
+					break;
+				} else {
+					query.addAnswer("Not found in " + query.getQuestions() + "auth DNS");
+					IPfound = false;
+					searchComplete = true;
+				}
+			} 
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try { if (rs != null) rs.close(); } catch (SQLException e) { e.printStackTrace(); }
+			try { if (stmt != null) stmt.close(); } catch (SQLException e) { e.printStackTrace(); }
+			try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+		}
+
+		segment = new UDP(srcPort, destPort, length, query);
+		if (IPfound) {
+			datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+					fragOffset, TTL, protocol, authDNSIP, comTLDIP, options, segment);
+			root(datagram);
+		} else {
+			datagram = new IP(version, headerLen, packetType, totalLength, ID, 
+					fragOffset, TTL, protocol, authDNSIP, comTLDIP, options, segment);
 			root(datagram);
 		}
 	}
