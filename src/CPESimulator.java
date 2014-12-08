@@ -27,11 +27,12 @@ public class CPESimulator {
 		prog.srcAddHeader(stream.next());
 	}
 	
-	//---------------------------------------------------------------
-	//At SOURCE
-	//Building DNS query and adding UDP and IP headers at source.
-	//After adding sending IP datagram to local DNS.
-	//---------------------------------------------------------------
+	/***********************************************************
+	 *	At SOURCE
+	 *  Building DNS query and adding UDP and IP headers at source 
+	 *  After adding sending IP datagram to local DNS.
+	 ************************************************************/
+	
 	public void srcAddHeader(String dName) {
 		int src_ID=0;
 		int src_flags=0;
@@ -59,12 +60,14 @@ public class CPESimulator {
 		String options="";
 		
 		src_numQuestion++;
+		
 		//Building DNS Query at Application layer
 		DNS query = new DNS (src_ID, src_flags, src_numQuestion, src_numAnswers, 
 							src_numRR, src_numAdditionRR, src_Questions, 
 							src_answers, src_authority, src_additional);
 		//Building UDP Segment at Transport layer
 		UDP segment = new UDP(srcPort, destPort, length,  query);
+		
 		//Building IP Datagram at Network layer
 		IP datagram = new IP(version, headerLen, packetType, totalLength, ID, 
 				fragOffset, TTL, protocol, srcIP, localDNSIP, options, segment);
@@ -72,11 +75,11 @@ public class CPESimulator {
 		localDNS(datagram);
 	}
 	
-	//--------------------------------------------------------------
-	//Deleting IP and UDP headers.
-	//Analyze DNS Query
-	//Display output which is in DNS Answers field.
-	//--------------------------------------------------------------
+	/*************************************************
+	 *	Deleting IP and UDP headers.
+	 *  Analyze DNS Query.
+	 *  Display output which is in DNS Answers field.
+	 *************************************************/
 	public void srcDelHeader(IP datagram) {
 		//Received IP datagram in Network layer.
 		IP datagram1 = datagram;
@@ -121,25 +124,37 @@ public class CPESimulator {
 		
 		//Received IP datagram in Network layer.
 		IP datagram1 = datagram;
+		
 		//Getting UDP segment from IP datagram at Transport layer.
 		UDP segment = datagram1.getSegment();
+		
 		//Getting DNS query from UDP segment.
 		DNS query = segment.getQuery();
 		
 		String Question = query.getQuestions();
 		
+		// Check if IP is the local DNS's database
 		if (!IPfound && !searchComplete){
 			Connection conn = null;
 			Statement stmt = null;
 			ResultSet rs = null;
+			
 			try {
+				
+				//Specify database location on machine
 				Class.forName("com.mysql.jdbc.Driver").newInstance();
 				String connectionUrl = "jdbc:mysql://localhost:3306/cpe600_dns";
+				
+				//Privilege information
 				String connectionUser = "root";
 				String connectionPassword = "ashok";
+				
+				//Establish database connection
 				conn = DriverManager.getConnection(connectionUrl, connectionUser, connectionPassword);
 				stmt = conn.createStatement();
-				rs = stmt.executeQuery("SELECT * FROM localdns_table"); 
+				rs = stmt.executeQuery("SELECT * FROM localdns_table");
+				
+				//Query all items
 				while (rs.next()) {
 					String name = rs.getString("name");
 					String value = rs.getString("value");
@@ -156,6 +171,8 @@ public class CPESimulator {
 				} 
 			} catch (Exception e) {
 				e.printStackTrace();
+				
+				//Exit database
 			} finally {
 				try { if (rs != null) rs.close(); } catch (SQLException e) { e.printStackTrace(); }
 				try { if (stmt != null) stmt.close(); } catch (SQLException e) { e.printStackTrace(); }
@@ -163,11 +180,13 @@ public class CPESimulator {
 			}
 		}
 		
+		//Detemine whether search is done at this level
 		segment = new UDP(srcPort, destPort, length, query);
 		if (IPfound || searchComplete) {
 			datagram = new IP(version, headerLen, packetType, totalLength, ID, 
 					fragOffset, TTL, protocol, localDNSIP, srcIP, options, segment);
 			srcDelHeader(datagram);
+		//IP is not found so search root
 		}else {
 			datagram = new IP(version, headerLen, packetType, totalLength, ID, 
 					fragOffset, TTL, protocol, localDNSIP, rootIP, options, segment);
@@ -175,6 +194,13 @@ public class CPESimulator {
 		}
 	}
 	
+	/*
+	 * Search root server
+	 * Deleting IP and UDP headers
+	 * Analyze DNS Query
+	 * Display output which is in DNS Answers field.
+	 * Go to the appropiate TLD server
+	 */
 	public void root(IP datagram) {
 		int srcPort=53;
 		int destPort=53;
@@ -234,6 +260,13 @@ public class CPESimulator {
 		}
 	}
 
+	/*
+	 * Search TLD server
+	 * Deleting IP and UDP headers
+	 * Analyze DNS Query
+	 * Display output which is in DNS Answers field.
+	 * Go back to the root server with appropiate datagram
+	 */
 	public void orgTLD(IP datagram) {
 		int srcPort=53;
 		int destPort=53;
@@ -269,6 +302,8 @@ public class CPESimulator {
 				String connectionUrl = "jdbc:mysql://localhost:3306/cpe600_dns";
 				String connectionUser = "root";
 				String connectionPassword = "ashok";
+				
+				//Establish database connection
 				conn = DriverManager.getConnection(connectionUrl, connectionUser, connectionPassword);
 				stmt = conn.createStatement();
 				rs = stmt.executeQuery("SELECT * FROM orgtld_table"); 
@@ -310,6 +345,13 @@ public class CPESimulator {
 		}
 	}
 
+	/*
+	 * Search TLD server
+	 * Deleting IP and UDP headers
+	 * Analyze DNS Query
+	 * Display output which is in DNS Answers field.
+	 * Go back to the root server with appropiate datagram
+	 */
 	public void eduTLD(IP datagram) {
 		int srcPort=53;
 		int destPort=53;
@@ -338,17 +380,24 @@ public class CPESimulator {
 			Statement stmt = null;
 			ResultSet rs = null;
 			try {
+				
+				//Specify database location on machine
 				Class.forName("com.mysql.jdbc.Driver").newInstance();
 				String connectionUrl = "jdbc:mysql://localhost:3306/cpe600_dns";
 				String connectionUser = "root";
 				String connectionPassword = "ashok";
+				
+				//Establish database connection
 				conn = DriverManager.getConnection(connectionUrl, connectionUser, connectionPassword);
 				stmt = conn.createStatement();
 				rs = stmt.executeQuery("SELECT * FROM edutld_table"); 
+				
+				//Query all item
 				while (rs.next()) {
 					String name = rs.getString("name");
 					String value = rs.getString("value");
 					String type = rs.getString("type");
+					
 					if (name.compareTo(Question)==0) {
 						query.addAnswer(value);
 						n++;
@@ -383,6 +432,13 @@ public class CPESimulator {
 		}
 	}
 	
+	/*
+	 * Search TLD server
+	 * Deleting IP and UDP headers
+	 * Analyze DNS Query
+	 * Display output which is in DNS Answers field.
+	 * Go back to the root server with appropiate datagram 
+	 */
 	public void comTLD(IP datagram) {
 		int srcPort=53;
 		int destPort=53;
@@ -414,13 +470,22 @@ public class CPESimulator {
 		Statement stmt = null;
 		ResultSet rs = null;
 		try {
+			
+			//Specify database location on machine
 			Class.forName("com.mysql.jdbc.Driver").newInstance();
 			String connectionUrl = "jdbc:mysql://localhost:3306/cpe600_dns";
+			
+			//Privilege information
 			String connectionUser = "root";
 			String connectionPassword = "ashok";
+			
+			//Establish database connection
 			conn = DriverManager.getConnection(connectionUrl, connectionUser, connectionPassword);
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery("SELECT * FROM comtld_table"); 
+			
+
+			//Query all items
 			while (rs.next()) {
 				String newName;
 				name = rs.getString("name");
@@ -457,11 +522,13 @@ public class CPESimulator {
 		}
 
 		segment = new UDP(srcPort, destPort, length, query);
+		
+		//Depend on resource record type go the root or authorative DNS
 		if (IPfound) {
 			if (type.compareTo("A")==0) {
 				datagram = new IP(version, headerLen, packetType, totalLength, ID, 
 					fragOffset, TTL, protocol, comTLDIP, rootIP, options, segment);
-				root(datagram);
+					root(datagram);
 			} else if (type.compareTo("NS") == 0) {
 				datagram = new IP(version, headerLen, packetType, totalLength, ID, 
 						fragOffset, TTL, protocol, comTLDIP, authDNSIP, options, segment);
@@ -477,6 +544,14 @@ public class CPESimulator {
 			root(datagram);
 		}
 	}
+	
+	/*
+	 * Search authoriative server
+	 * Deleting IP and UDP headers
+	 * Analyze DNS Query
+	 * Display output which is in DNS Answers field.
+	 * Go back to the root server with appropiate datagram 
+	 */
 	public void authDNS(IP datagram) {
 		int srcPort=53;
 		int destPort=53;
@@ -504,13 +579,22 @@ public class CPESimulator {
 		Statement stmt = null;
 		ResultSet rs = null;
 		try {
+			
+			//Specify database location on machine
 			Class.forName("com.mysql.jdbc.Driver").newInstance();
 			String connectionUrl = "jdbc:mysql://localhost:3306/cpe600_dns";
+			
+			//Privilege information
 			String connectionUser = "root";
 			String connectionPassword = "ashok";
+			
+			//Establish database connection
 			conn = DriverManager.getConnection(connectionUrl, connectionUser, connectionPassword);
 			stmt = conn.createStatement();
+			
 			rs = stmt.executeQuery("SELECT * FROM authdns_table"); 
+			
+			//Query all items
 			while (rs.next()) {
 				String name = rs.getString("name");
 				String value = rs.getString("value");

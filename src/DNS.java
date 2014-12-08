@@ -1,6 +1,9 @@
 import java.util.ArrayList;
 
+//DNS packet
 public class DNS {
+	
+	//Fields
 	private int ID;
 	private int flags;
 	private int numQuestion;
