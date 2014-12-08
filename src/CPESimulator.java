@@ -226,6 +226,10 @@ public class CPESimulator {
 		int len = query.getQuestions().length();
 		String topLevel = query.getQuestions().substring(len - 3);
 		
+		//Analyze the TLD part of the query and forward the datagram to the
+		//appropriate TLD server for the answer. If TLD part is ".com", forward
+		//datagram to comTLD server, if TLD part is ".edu", forward datagram to
+		//eduTLD server and so on.
 		if (IPfound || searchComplete) {
 			segment = new UDP(srcPort, destPort, length,  query);
 			datagram = new IP(version, headerLen, packetType, totalLength, ID, 
@@ -523,7 +527,7 @@ public class CPESimulator {
 
 		segment = new UDP(srcPort, destPort, length, query);
 		
-		//Depend on resource record type go the root or authorative DNS
+		//Depend on resource record type go the root or authoritative DNS
 		if (IPfound) {
 			if (type.compareTo("A")==0) {
 				datagram = new IP(version, headerLen, packetType, totalLength, ID, 
@@ -546,11 +550,11 @@ public class CPESimulator {
 	}
 	
 	/*
-	 * Search authoriative server
+	 * Search authoritative server
 	 * Deleting IP and UDP headers
 	 * Analyze DNS Query
 	 * Display output which is in DNS Answers field.
-	 * Go back to the root server with appropiate datagram 
+	 * Go back to the root server with appropriate datagram 
 	 */
 	public void authDNS(IP datagram) {
 		int srcPort=53;
